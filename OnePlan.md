@@ -59,16 +59,16 @@
 ## 1. Introduction
 
 <div style="background-color: #F8F8FF; border-left: 4px solid #580F41; padding: 15px; margin-bottom: 20px;">
-  <p><strong style="color: #580F41;">Twelve Nexus</strong> represents the fusion of advanced AI technology with enterprise-grade project management, designed to transform how teams conceptualize, plan, and execute their projects.</p>
+  <p><strong style="color: #580F41;">One Plan</strong> represents the fusion of advanced AI technology with enterprise-grade project management, designed to transform how teams conceptualize, plan, and execute their projects.</p>
 </div>
 
 ### 1.1 Purpose
 
-This Software Requirements Specification (SRS) document provides a comprehensive description of the Twelve Nexus AI-Enhanced Project Management Platform. It details the system's functionality, external interfaces, performance requirements, design constraints, and quality attributes, serving as the definitive reference for the development team and stakeholders.
+This Software Requirements Specification (SRS) document provides a comprehensive description of the One Plan AI-Enhanced Project Management Platform. It details the system's functionality, external interfaces, performance requirements, design constraints, and quality attributes, serving as the definitive reference for the development team and stakeholders.
 
 ### 1.2 Project Scope
 
-Twelve Nexus is a sophisticated SaaS platform that leverages artificial intelligence to revolutionize the project management process. The platform features:
+One Plan is a sophisticated SaaS platform that leverages artificial intelligence to revolutionize the project management process. The platform features:
 
 - AI-powered requirement gathering and analysis
 - Intelligent storyboarding with public sharing capabilities
@@ -175,9 +175,10 @@ The primary functions of Twelve Nexus include:
 
 ### 2.4 Operating Environment
 
-- **Backend**: Java 17+, Spring Boot 3.x, Spring Cloud
-- **Frontend**: Next.js 14+, React 18+, TypeScript
-- **Databases**: MariaDB/MySQL, MongoDB 6.0+, Redis 7.0+
+- **Backend**: Java 23, Spring Boot 3.4.5
+- **Build System**: Gradle 8.6+
+- **Frontend**: Next.js 15+ (App Directory), React 19+, shadcn/ui, TypeScript
+- **Databases**: MariaDB 11.2+, MongoDB 6.0+, Redis 7.0+
 - **Infrastructure**: Docker, Kubernetes, AWS/GCP/Azure
 - **CI/CD**: GitHub Actions, Jenkins, or GitLab CI
 - **Monitoring**: Prometheus, Grafana, ELK Stack
@@ -632,16 +633,19 @@ The primary functions of Twelve Nexus include:
 <div style="background-color: #F8F8FF; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
   <div style="font-family: monospace; color: #2E2E2E; text-align: left; white-space: pre; overflow: auto; padding: 10px; background-color: #F8F8FF; border: 1px solid #A89DB1; border-radius: 5px;">
   ┌─────────────────────────────────────────────────────────────────┐
-  │                     Twelve Nexus Platform                        │
+  │                      One Plan Platform                           │
   └─────────────────────────────────────────────────────────────────┘
              │                     │                     │
     ┌────────▼─────────┐  ┌────────▼─────────┐  ┌────────▼─────────┐
     │   Presentation   │  │    Application    │  │      Data        │
     │      Layer       │  │      Layer        │  │     Layer        │
     └──────────────────┘  └──────────────────┘  └──────────────────┘
-    │  • Next.js Frontend │  │  • API Gateway    │  │  • MariaDB/MySQL    │
-    │  • Mobile Apps      │  │  • Microservices  │  │  • MongoDB       │
-    │  • Public API       │  │  • Message Broker │  │  • Redis         │
+    │  • Next.js 14+     │  │  • API Gateway    │  │  • MariaDB 11.2+ │
+    │    (App Directory) │  │  • Microservices  │  │  • MongoDB 6.0+  │
+    │  • React 19        │  │    (Java 23,      │  │  • Redis 7.0+    │
+    │  • shadcn/ui       │  │     Spring Boot   │  │                  │
+    │  • Mobile Apps     │  │     3.4.5, Gradle)│  │                  │
+    │  • Public API      │  │  • Message Broker │  │                  │
     └──────────────────┘  └──────────────────┘  └──────────────────┘
                                   │
                      ┌────────────┴────────────┐
@@ -654,7 +658,7 @@ The primary functions of Twelve Nexus include:
   </div>
 </div>
 
-The Twelve Nexus platform follows a modern cloud-native architecture designed for scalability, resilience, and maintainability. The system is structured as a monorepo containing multiple microservices, a Next.js frontend application, and shared infrastructure configuration.
+The One Plan platform follows a modern cloud-native architecture designed for scalability, resilience, and maintainability. The system is structured as a monorepo containing multiple microservices, a Next.js frontend application, and shared infrastructure configuration.
 
 The architecture is divided into the following layers:
 - **Presentation Layer**: User interfaces and API clients
@@ -674,68 +678,83 @@ The system is composed of the following microservices:
    - Route requests to appropriate microservices
    - Handle cross-cutting concerns (authentication, logging)
    - Manage API versioning and documentation
+   - Technology: Spring Cloud Gateway, Java 23
 
 2. **Identity Service**
    - User authentication and authorization
    - Profile management
    - OAuth provider integration
    - Multi-factor authentication
+   - Technology: Spring Boot 3.4.5, Spring Security, Java 23, Gradle
 
 3. **Tenant Service**
    - Multi-tenant management
    - Tenant provisioning and configuration
    - Tenant-specific settings
+   - Technology: Spring Boot 3.4.5, Java 23, Gradle
 
 4. **Organization Service**
    - Organization CRUD operations
    - Team management
    - Permission management for organizations
+   - Technology: Spring Boot 3.4.5, Java 23, Gradle
 
 5. **Project Service**
    - Project CRUD operations
    - Project configuration and settings
    - Project analytics and reporting
+   - Technology: Spring Boot 3.4.5, Java 23, Gradle
 
 6. **Requirement Service**
    - Requirement documentation
    - AI analysis integration
    - Version control for requirements
+   - Technology: Spring Boot 3.4.5, Java 23, Gradle
 
 7. **Storyboard Service**
    - Story generation and management
    - Visual storyboard representation
    - Public sharing and permissions
+   - Technology: Spring Boot 3.4.5, Java 23, Gradle
 
 8. **Task Service**
    - Task CRUD operations
    - Task assignment and status tracking
    - Comments and activity tracking
+   - Technology: Spring Boot 3.4.5, Java 23, Gradle
 
 9. **Integration Service**
    - Git provider connections
    - Webhook handling
    - Third-party integrations
+   - Technology: Spring Boot 3.4.5, Java 23, Gradle
 
 10. **Notification Service**
     - Event processing and routing
     - Notification delivery across channels
     - Notification preferences and digests
+    - Technology: Spring Boot 3.4.5, Java 23, Gradle
 
 11. **Analytics Service**
     - Data aggregation and processing
     - Report generation
     - Dashboard data providers
+    - Technology: Spring Boot 3.4.5, Java 23, Gradle
 
 12. **Subscription Service**
     - Plan management
     - Billing operations
     - Usage tracking and enforcement
+    - Technology: Spring Boot 3.4.5, Java 23, Gradle
 
 ### 4.3 Frontend Architecture
 
 The frontend application follows a component-based architecture using Next.js and React:
 
 1. **Core Components**
+   - Next.js 15 with App Directory structure
+   - React 19 for enhanced performance
+   - shadcn/ui component library for consistent design
    - Layouts and templates
    - Navigation components
    - Authentication flows
@@ -750,13 +769,14 @@ The frontend application follows a component-based architecture using Next.js an
    - Timeline visualization
 
 3. **Shared Services**
-   - API client
+   - API client with React Query
    - Authentication service
    - Notification handling
    - WebSocket connection
    - Analytics tracking
 
 4. **State Management**
+   - React Context API
    - Global application state
    - Feature-specific states
    - Form state management
@@ -769,7 +789,7 @@ The frontend application follows a component-based architecture using Next.js an
   <p>Twelve Nexus employs a polyglot persistence approach, selecting the right database technology for each data type and access pattern.</p>
 </div>
 
-1. **MariaDB/MySQL**
+1. **MariaDB**
    - User accounts and authentication
    - Organizations and teams
    - Projects and tasks
@@ -822,7 +842,7 @@ The system integrates with external services through dedicated adapters and well
 
 <div style="background-color: #F8F8FF; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
   <h3 style="color: #580F41;">Multi-Tenant Architecture</h3>
-  <p style="color: #2E2E2E;">Twelve Nexus implements a sophisticated multi-tenant architecture that balances isolation, security, and resource efficiency across varying tenant scales.</p>
+  <p style="color: #2E2E2E;">One Plan implements a sophisticated multi-tenant architecture that balances isolation, security, and resource efficiency across varying tenant scales.</p>
   <div style="display: flex; margin-top: 15px;">
     <div style="flex: 1; background-color: #4682B4; color: #F8F8FF; padding: 15px; border-radius: 5px; margin-right: 10px;">
       <h4 style="color: #F8F8FF;">Security</h4>
@@ -841,7 +861,7 @@ The system integrates with external services through dedicated adapters and well
 
 ### 5.1 Tenant Isolation Strategies
 
-Twelve Nexus employs a hybrid isolation strategy to balance security, performance, and resource utilization:
+One Plan employs a hybrid isolation strategy to balance security, performance, and resource utilization:
 
 1. **Database-per-Tenant (Enterprise Tier)**
    - Complete database isolation for enterprise customers
@@ -1716,11 +1736,11 @@ The AI components require integration with the following capabilities:
 ## 9. Conclusion
 
 <div style="background-color: #580F41; color: #F8F8FF; padding: 30px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
-  <h3 style="color: #C0C0C0;">Twelve Nexus: Transforming Project Management</h3>
+  <h3 style="color: #C0C0C0;">One Plan: Transforming Project Management</h3>
   <p>This SRS document provides a comprehensive blueprint for building a sophisticated, AI-enhanced project management platform that delivers significant efficiency gains across the project lifecycle.</p>
 </div>
 
-The Twelve Nexus platform represents a significant advancement in project management tooling by combining:
+The One Plan platform represents a significant advancement in project management tooling by combining:
 
 1. **AI-Powered Planning**
    - Intelligent requirement analysis reduces ambiguity and improves clarity
@@ -1742,7 +1762,7 @@ The Twelve Nexus platform represents a significant advancement in project manage
    - Commit and PR tracking creates visibility into development progress
    - Automated status updates reduce manual reporting
 
-By implementing this specification, Twelve Nexus will deliver measurable benefits:
+By implementing this specification, One Plan will deliver measurable benefits:
 - 40-60% reduction in project planning time
 - 35% improvement in requirement quality
 - 30% increase in deadline accuracy
@@ -1757,5 +1777,5 @@ This document serves as both a detailed development guide and a demonstration of
   <p><strong>Apavayan Sinha</strong><br>
   (Future) Chief Architect<br>
   <a href="mailto:info@apavayan.com" style="color: #4682B4;">info@apavayan.com</a></p>
-  <p style="color: #A89DB1;">© 2025 Twelve Nexus. All rights reserved.</p>
+  <p style="color: #A89DB1;">© 2025 Twelve Nexus - One Plan. All rights reserved.</p>
 </div>
