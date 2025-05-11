@@ -24,6 +24,7 @@ import java.util.UUID;
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", columnDefinition = "BINARY(16)")
     private UUID id;
 
     @NotBlank
@@ -51,7 +52,7 @@ public class User {
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_roles", 
-                    joinColumns = @JoinColumn(name = "user_id"))
+                    joinColumns = @JoinColumn(name = "user_id", columnDefinition = "BINARY(16)"))
     @Column(name = "role")
     private Set<String> roles = new HashSet<>();
 

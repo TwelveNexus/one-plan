@@ -14,11 +14,12 @@ import java.util.UUID;
 @AllArgsConstructor
 public class UserPreferences {
     @Id
+    @Column(name = "user_id", columnDefinition = "BINARY(16)")
     private UUID userId;
 
     @OneToOne
     @MapsId
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", columnDefinition = "BINARY(16)")
     private User user;
 
     private String theme = "light";
