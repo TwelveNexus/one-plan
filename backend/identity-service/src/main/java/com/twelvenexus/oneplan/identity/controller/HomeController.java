@@ -10,7 +10,7 @@ import java.util.Map;
 @RestController
 public class HomeController {
 
-    @GetMapping("/")
+    @GetMapping({"", "/"})
     public ResponseEntity<Map<String, String>> home() {
         Map<String, String> response = new HashMap<>();
         response.put("service", "Identity Service");

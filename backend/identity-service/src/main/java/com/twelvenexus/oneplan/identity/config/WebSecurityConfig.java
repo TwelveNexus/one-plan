@@ -31,9 +31,7 @@ public class WebSecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/error").permitAll() // Allow access to error page
-                        .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers(SecurityConstants.PUBLIC_ROUTES).permitAll()
                         .requestMatchers(HttpMethod.POST, "/users").permitAll() // For registration
                         .anyRequest().authenticated()
                 )
