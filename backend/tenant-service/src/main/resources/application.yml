@@ -1,0 +1,35 @@
+server:
+  port: 8082
+  servlet:
+    context-path: /api/v1
+
+spring:
+  application:
+    name: tenant-service
+  datasource:
+    url: jdbc:mariadb://localhost:3306/oneplan_tenant
+    username: root
+    password: rootpassword
+    driver-class-name: org.mariadb.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MariaDBDialect
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+# JWT Configuration (shared with Identity Service)
+jwt:
+  secret: "em1ij315in1212in53p12o5j3j1n3i5"
+  expiration: 86400000  # 24 hours in milliseconds
+
+# OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
