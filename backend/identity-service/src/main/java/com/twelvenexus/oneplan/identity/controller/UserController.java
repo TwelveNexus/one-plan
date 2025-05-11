@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/users")
+@RequestMapping(value = "/users", produces = "application/json")
 @RequiredArgsConstructor
 public class UserController {
 

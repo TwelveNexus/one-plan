@@ -15,6 +15,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import java.time.LocalDateTime;
 
 @Configuration
 @EnableWebSecurity
@@ -30,10 +31,29 @@ public class WebSecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/error").permitAll() // Allow access to error page
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/users").permitAll() // For registration
                         .anyRequest().authenticated()
+                )
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            // Handle unauthorized access
+                            response.setContentType("application/json");
+                            response.setStatus(401);
+                            response.getWriter().write("{\"timestamp\":\"" + LocalDateTime.now() +
+                                    "\",\"status\":401,\"message\":\"Unauthorized\",\"path\":\"" +
+                                    request.getRequestURI() + "\"}");
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            // Handle forbidden access
+                            response.setContentType("application/json");
+                            response.setStatus(403);
+                            response.getWriter().write("{\"timestamp\":\"" + LocalDateTime.now() +
+                                    "\",\"status\":403,\"message\":\"Forbidden\",\"path\":\"" +
+                                    request.getRequestURI() + "\"}");
+                        })
                 );
 
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
