@@ -40,11 +40,12 @@ one-plan/
 │   ├── kubernetes/
 │   └── ci-cd/
 └── docs/
-├── architecture/
-├── api/
-├── user-guides/
-└── development/
+    ├── architecture/
+    ├── api/
+    ├── user-guides/
+    └── development/
 ```
+
 ## Build System
 We are using Gradle as our build system for all microservices.
 
@@ -64,37 +65,55 @@ We are using Gradle as our build system for all microservices.
   - `/auth/refresh`: JWT token refresh
   - `/users/**`: User management endpoints with role-based permissions
 
+#### Tenant Service Implementation
+- **Core Service Structure**: Created Spring Boot application using Spring Initializr
+- **Model Design**: Implemented Tenant entity with UUID handling and proper JPA configuration
+- **Repository Layer**: Created JPA repository with custom query methods
+- **Service Layer**: Implemented service interface and implementation with proper validation
+- **API Controller**: Created RESTful API endpoints with proper validation and error handling
+- **Database Schema**: Set up database migration using Flyway
+- **API Documentation**: Integrated Swagger UI with OpenAPI configuration
+- **Error Handling**: Implemented global exception handling for consistent error responses
+
+#### Organization Service Implementation
+- **Core Service Structure**: Created Spring Boot application using Spring Initializr
+- **Model Design**: Implemented three key entities - Organization, Team, and TeamMember
+- **Repository Layer**: Created JPA repositories with relationship handling
+- **Service Layer**: Implemented service interfaces and implementations for all entities
+- **API Controllers**: Created RESTful API endpoints for all three domains
+- **Database Schema**: Set up complex schema migration with foreign key relationships
+- **API Documentation**: Configured Swagger UI with entity-specific API documentation
+- **Error Handling**: Implemented comprehensive exception handling
+
 #### Development Environment
 - **Project Structure**: Established a structured monorepo organization for all microservices
 - **Database Management**: Implemented proper schema versioning with Flyway
 - **Security Features**: Added JWT-based authentication with proper token handling
+- **API Documentation**: Standardized OpenAPI documentation across services
 
 ### ⏳ In Progress
 
-#### Identity Service Refinements
-- Implementing OpenAPI documentation
-- Enhancing error responses and edge case handling
-
-#### Tenant Service Implementation
-- Setting up initial service structure using Spring Initializr
-- Creating data models and database schema
+#### Integration Between Services
+- Working on service-to-service communication strategy
+- Planning shared authentication and authorization approach
 
 ## Next Steps
 
 ### Immediate Tasks
-1. **OpenAPI Integration**: Add Swagger UI for API documentation
-2. **Complete Tenant Service**: Implement repository, service, and controller layers
+1. **Project Service**: Implement the Project Service as the next crucial component
+2. **Service Discovery**: Set up service discovery mechanism for inter-service communication
+3. **API Gateway**: Implement the API Gateway to provide a unified API entry point
 
 ### Upcoming Microservices
-1. **Organization Service**: For organization management (Priority: High)
-   - Organization CRUD operations
-   - Team management
-   - Permission management for organizations
-
-2. **Project Service**: For project management (Priority: Medium)
+1. **Project Service**: For project management (Priority: High)
    - Project CRUD operations
    - Project configuration and settings
    - Project analytics and reporting
+
+2. **Task Service**: For task management (Priority: Medium)
+   - Task CRUD operations
+   - Task assignment and status tracking
+   - Comments and activity tracking
 
 ### Future Enhancements
 - **Test Implementation**: Add comprehensive unit and integration tests (currently skipped)
@@ -114,14 +133,42 @@ We are using Gradle as our build system for all microservices.
   - Flyway for migrations
   - Lombok for boilerplate reduction
   - SpringDoc OpenAPI for documentation
-- **Schema Design**: See `V1__Initial_Schema.sql` for database structure
 - **Security**: JWT-based authentication with refresh token support
-- **Environment Management**: .env file for sensitive configuration
+
+### Tenant Service Architecture
+- **Framework**: Spring Boot 3.x with Java 21
+- **Database**: MariaDB 11.2+
+- **Dependencies**:
+  - Spring Data JPA
+  - Spring Web
+  - SpringDoc OpenAPI
+  - Flyway for migrations
+  - Lombok for boilerplate reduction
+- **API Endpoints**:
+  - CRUD operations for tenants
+  - Tenant lookup by domain
+
+### Organization Service Architecture
+- **Framework**: Spring Boot 3.x with Java 21
+- **Database**: MariaDB 11.2+
+- **Dependencies**:
+  - Spring Data JPA
+  - Spring Web
+  - SpringDoc OpenAPI
+  - Flyway for migrations
+  - Lombok for boilerplate reduction
+- **Key Entities**:
+  - Organization (top-level entity)
+  - Team (belongs to an organization)
+  - TeamMember (belongs to a team)
+- **API Endpoints**:
+  - Complete CRUD operations for all entities
+  - Specialized team member management
 
 ### Current Challenges
 - UUID handling in MariaDB and Hibernate
-- Spring Security configuration for proper error responses
-- Ensuring proper tenant isolation in future services
+- Service-to-service communication strategy
+- Implementing proper tenant isolation across services
 
 ## Conclusion
-The One Plan project has established a solid foundation with the identity service and is now expanding to implement the tenant service. We are using Spring Initializr to bootstrap new services and following a consistent architectural approach across all microservices. While testing and containerization are temporarily deferred, we maintain focus on core functionality development with plans to add these important aspects in future iterations.
+The One Plan project has made significant progress with three core microservices implemented: Identity, Tenant, and Organization services. Each follows a consistent architectural approach with proper separation of concerns. We're using Spring Initializr to bootstrap new services efficiently, focusing on core functionality development while maintaining a high standard of code quality and API design. The next phase will focus on implementing the Project Service and establishing robust inter-service communication.
