@@ -72,7 +72,7 @@ We are using Gradle as our build system for all microservices.
 ### ✅ Completed
 
 #### Identity Service Implementation (Port: 8081)
-- **Core Service Structure**: Created the basic Spring Boot application structure with Java 23
+- **Core Service Structure**: Created the basic Spring Boot application structure with Java 21
 - **Security Configuration**: Implemented JWT-based authentication with full user management
 - **Database Integration**: Set up MariaDB connection with Flyway migrations for schema management
 - **Environment Management**: Implemented .env file support for managing sensitive configuration
@@ -104,7 +104,7 @@ We are using Gradle as our build system for all microservices.
 - **Error Handling**: Implemented comprehensive exception handling
 
 #### Project Service Implementation (Port: 8084)
-- **Core Service Structure**: Created Spring Boot application with Java 23
+- **Core Service Structure**: Created Spring Boot application with Java 21
 - **Model Design**: Implemented Project entity with enums for visibility and status
 - **Repository Layer**: Created JPA repository with query methods for organization and key lookups
 - **Service Layer**: Implemented service interface and implementation with validation
@@ -115,7 +115,7 @@ We are using Gradle as our build system for all microservices.
 - **Error Handling**: Global exception handler with validation error responses
 
 #### Task Service Implementation (Port: 8085)
-- **Core Service Structure**: Created Spring Boot application with Java 23
+- **Core Service Structure**: Created Spring Boot application with Java 21
 - **Model Design**: Implemented comprehensive task model with:
   - Task entity with status and priority enums
   - TaskAttachment for file attachments
@@ -187,7 +187,7 @@ We are using Gradle as our build system for all microservices.
 ## Technical Details
 
 ### Identity Service Architecture (Port: 8081)
-- **Framework**: Spring Boot 3.x with Java 23
+- **Framework**: Spring Boot 3.4.5 with Java 21
 - **Database**: MariaDB 11.2+
 - **Dependencies**:
   - Spring Security with JWT
@@ -198,7 +198,7 @@ We are using Gradle as our build system for all microservices.
 - **Security**: JWT-based authentication with refresh token support
 
 ### Tenant Service Architecture (Port: 8082)
-- **Framework**: Spring Boot 3.x with Java 23
+- **Framework**: Spring Boot 3.4.5 with Java 21
 - **Database**: MariaDB 11.2+
 - **Dependencies**:
   - Spring Data JPA
@@ -211,7 +211,7 @@ We are using Gradle as our build system for all microservices.
   - Tenant lookup by domain
 
 ### Organization Service Architecture (Port: 8083)
-- **Framework**: Spring Boot 3.x with Java 23
+- **Framework**: Spring Boot 3.4.5 with Java 21
 - **Database**: MariaDB 11.2+
 - **Dependencies**:
   - Spring Data JPA
@@ -228,7 +228,7 @@ We are using Gradle as our build system for all microservices.
   - Specialized team member management
 
 ### Project Service Architecture (Port: 8084)
-- **Framework**: Spring Boot 3.x with Java 23
+- **Framework**: Spring Boot 3.4.5 with Java 21
 - **Database**: MariaDB 11.2+
 - **Dependencies**:
   - Spring Data JPA
@@ -243,7 +243,7 @@ We are using Gradle as our build system for all microservices.
   - Comprehensive DTO layer
 
 ### Task Service Architecture (Port: 8085)
-- **Framework**: Spring Boot 3.x with Java 23
+- **Framework**: Spring Boot 3.4.5 with Java 21
 - **Database**: MariaDB 11.2+
 - **Dependencies**:
   - Spring Data JPA
