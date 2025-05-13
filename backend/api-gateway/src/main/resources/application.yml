@@ -14,7 +14,7 @@ spring:
             - Path=/api/v1/auth/**
           filters:
             - RewritePath=/api/v1/auth/(?<segment>.*), /api/v1/auth/${segment}
-        
+
         # Tenant Service Routes
         - id: tenant-service
           uri: http://localhost:8082
@@ -38,7 +38,7 @@ spring:
             - Path=/api/v1/projects/**
           filters:
             - RewritePath=/api/v1/projects/(?<segment>.*), /api/v1/projects/${segment}
-        
+
         # Task Service Routes
         - id: task-service
           uri: http://localhost:8085
@@ -54,12 +54,20 @@ spring:
             - Path=/api/v1/requirements/**
           filters:
             - RewritePath=/api/v1/requirements/(?<segment>.*), /api/v1/requirements/${segment}
-        
+
+        # Storyboard Service Routes
+        - id: storyboard-service
+          uri: http://localhost:8087
+          predicates:
+            - Path=/api/v1/storyboards/**
+          filters:
+            - RewritePath=/api/v1/storyboards/(?<segment>.*), /api/v1/storyboards/${segment}
+
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
       globalcors:
         corsConfigurations:
-          '[/**]':
+          "[/**]":
             allowedOrigins:
               - "http://localhost:3000"
               - "http://localhost:3001"
