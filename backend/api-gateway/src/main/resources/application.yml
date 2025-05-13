@@ -1,0 +1,85 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        # Identity Service Routes
+        - id: identity-service-auth
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/v1/auth/**
+          filters:
+            - RewritePath=/api/v1/auth/(?<segment>.*), /api/v1/auth/${segment}
+        
+        # Tenant Service Routes
+        - id: tenant-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/v1/tenants/**
+          filters:
+            - RewritePath=/api/v1/tenants/(?<segment>.*), /api/v1/tenants/${segment}
+ 
+        # Organization Service Routes
+        - id: organization-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/v1/organizations/**, /api/v1/teams/**
+          filters:
+            - RewritePath=/api/v1/(?<segment>.*), /api/v1/${segment}
+            
+        # Project Service Routes
+        - id: project-service
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/v1/projects/**
+          filters:
+            - RewritePath=/api/v1/projects/(?<segment>.*), /api/v1/projects/${segment}
+        
+        # Task Service Routes
+        - id: task-service
+          uri: http://localhost:8085
+          predicates:
+            - Path=/api/v1/tasks/**
+          filters:
+            - RewritePath=/api/v1/tasks/(?<segment>.*), /api/v1/tasks/${segment}
+      
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+      
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:3000"
+              - "http://localhost:3001"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+            maxAge: 3600
+
+# JWT Configuration
+jwt:
+  secret: ju2n34asbd912nuos1-2anod
+  expiration: 86400000 # 24 hours
+
+# Logging
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+
+# Actuator endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,routes
