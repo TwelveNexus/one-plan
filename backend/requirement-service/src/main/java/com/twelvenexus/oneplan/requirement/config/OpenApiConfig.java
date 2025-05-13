@@ -23,7 +23,7 @@ public class OpenApiConfig {
                                 .name("Twelve Nexus Team")
                                 .email("support@twelvenexus.com")))
                 .servers(List.of(
-                        new Server().url("http://localhost:8086").description("Local Development"),
+                        new Server().url("http://localhost:8086").description("Local Development")
                         // new Server().url("https://api.twelvenexus.in").description("Production")
                 ));
     }

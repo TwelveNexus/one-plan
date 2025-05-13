@@ -10,20 +10,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.twelvenexus.oneplan.integration.model.GitCommit;
+import com.twelvenexus.oneplan.integration.model.GitConnection;
+import com.twelvenexus.oneplan.integration.model.OAuthState;
+import com.twelvenexus.oneplan.integration.model.PullRequest;
+import com.twelvenexus.oneplan.integration.repository.GitCommitRepository;
+import com.twelvenexus.oneplan.integration.repository.GitConnectionRepository;
+import com.twelvenexus.oneplan.integration.repository.OAuthStateRepository;
+import com.twelvenexus.oneplan.integration.repository.PullRequestRepository;
+import com.twelvenexus.oneplan.integration.service.GitProviderService;
+import com.twelvenexus.oneplan.integration.service.WebhookService;
+import com.twelvenexus.oneplan.integration.service.provider.GitProviderStrategy;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import main.java.com.twelvenexus.oneplan.integration.model.GitCommit;
-import main.java.com.twelvenexus.oneplan.integration.model.GitConnection;
-import main.java.com.twelvenexus.oneplan.integration.model.OAuthState;
-import main.java.com.twelvenexus.oneplan.integration.model.PullRequest;
-import main.java.com.twelvenexus.oneplan.integration.repository.GitCommitRepository;
-import main.java.com.twelvenexus.oneplan.integration.repository.GitConnectionRepository;
-import main.java.com.twelvenexus.oneplan.integration.repository.OAuthStateRepository;
-import main.java.com.twelvenexus.oneplan.integration.repository.PullRequestRepository;
-import main.java.com.twelvenexus.oneplan.integration.service.GitProviderService;
-import main.java.com.twelvenexus.oneplan.integration.service.WebhookService;
-import main.java.com.twelvenexus.oneplan.integration.service.provider.GitProviderStrategy;
 
 @Service
 @RequiredArgsConstructor
