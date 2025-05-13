@@ -18,9 +18,9 @@ spring:
       host: ${MONGO_HOST}
       port: ${MONGO_PORT}
       database: ${MONGO_DATABASE}
-  redis:
-    host: ${REDIS_HOST}
-    port: ${REDIS_PORT}
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
   cache:
     type: caffeine
     caffeine:
