@@ -71,8 +71,33 @@ spring:
           filters:
             - RewritePath=/api/v1/(?<segment>.*), /api/v1/${segment}
 
+        # Notification Service Routes
+        - id: notification-service
+          uri: http://localhost:8089
+          predicates:
+            - Path=/api/v1/notifications/**, /api/v1/preferences/**
+          filters:
+            - RewritePath=/api/v1/(?<segment>.*), /api/v1/${segment}
+
+        # Analytics Service Routes
+        - id: analytics-service
+          uri: http://localhost:8090
+          predicates:
+            - Path=/api/v1/metrics/**, /api/v1/events/**, /api/v1/reports/**, /api/v1/dashboards/**
+          filters:
+            - RewritePath=/api/v1/(?<segment>.*), /api/v1/${segment}
+
+        # Subscription Service Routes
+        - id: subscription-service
+          uri: http://localhost:8091
+          predicates:
+            - Path=/api/v1/plans/**, /api/v1/subscriptions/**, /api/v1/payments/**, /api/v1/payment-methods/**, /api/v1/invoices/**, /api/v1/webhooks/razorpay/**, /api/v1/webhooks/phonepe/**
+          filters:
+            - RewritePath=/api/v1/(?<segment>.*), /api/v1/${segment}
+
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+
       globalcors:
         corsConfigurations:
           "[/**]":
@@ -85,6 +110,7 @@ spring:
               - PUT
               - DELETE
               - OPTIONS
+              - PATCH
             allowedHeaders:
               - "*"
             allowCredentials: true
@@ -98,11 +124,49 @@ jwt:
 # Logging
 logging:
   level:
-    org.springframework.cloud.gateway: DEBUG
+    org.springframework.cloud.gateway: INFO
+    com.twelvenexus.oneplan: DEBUG
 
 # Actuator endpoints
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,routes
+        include: health,info,routes,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# Circuit Breaker Configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      identity-service:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        permittedNumberOfCallsInHalfOpenState: 3
+        slidingWindowType: TIME_BASED
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 30s
+        failureRateThreshold: 50
+      tenant-service:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        permittedNumberOfCallsInHalfOpenState: 3
+        slidingWindowType: TIME_BASED
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 30s
+        failureRateThreshold: 50
+      # Add similar configuration for other services
+
+# Timeouts
+spring.cloud.gateway.httpclient.connect-timeout: 10000
+spring.cloud.gateway.httpclient.response-timeout: 30s
+
+# Custom headers
+spring.cloud.gateway.filter.request-rate-limiter:
+  redis-rate-limiter:
+    replenish-rate: 10
+    burst-capacity: 20
+    requested-tokens: 1
+
