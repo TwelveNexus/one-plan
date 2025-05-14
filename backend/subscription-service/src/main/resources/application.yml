@@ -1,0 +1,62 @@
+spring:
+  application:
+    name: subscription-service
+  datasource:
+    url: jdbc:mariadb://${DB_HOST}:${DB_PORT}/${DB_NAME}?useSSL=false&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.mariadb.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MariaDBDialect
+        format_sql: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=600s
+
+server:
+  port: ${SERVER_PORT:8091}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+payment:
+  razorpay:
+    key-id: ${RAZORPAY_KEY_ID}
+    key-secret: ${RAZORPAY_KEY_SECRET}
+    webhook-secret: ${RAZORPAY_WEBHOOK_SECRET}
+    api-url: https://api.razorpay.com/v1
+  phonepe:
+    merchant-id: ${PHONEPE_MERCHANT_ID}
+    salt-key: ${PHONEPE_SALT_KEY}
+    salt-index: ${PHONEPE_SALT_INDEX}
+    environment: ${PHONEPE_ENVIRONMENT}
+    api-url: https://api.phonepe.com/apis/hermes
+    sandbox-url: https://api-preprod.phonepe.com/apis/hermes
+  currency: ${PAYMENT_CURRENCY:INR}
+  gateway-timeout: ${PAYMENT_GATEWAY_TIMEOUT:30000}
+
+subscription:
+  trial-days: 14
+  grace-period-days: 7
+  invoice:
+    tax-rate: 18.0
+    company-name: Twelve Nexus
+    company-address: India
+    gst-number: N/A
