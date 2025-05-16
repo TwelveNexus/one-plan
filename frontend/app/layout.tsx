@@ -1,7 +1,6 @@
-import { ThemeProvider } from "@/components/theme-provider";
+import Providers from "@/components/providers";
 import type { Metadata } from "next";
-import { Inter, DM_Sans, JetBrains_Mono } from "next/font/google";
-import { Toaster } from "@/components/ui/sonner";
+import { DM_Sans, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -58,15 +57,9 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${dmSans.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
+        <Providers>
           <main>{children}</main>
-          <Toaster />
-        </ThemeProvider>
+        </Providers>
       </body>
     </html>
   );
