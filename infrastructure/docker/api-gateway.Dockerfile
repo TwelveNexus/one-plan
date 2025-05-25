@@ -1,6 +1,6 @@
 # Multi-stage build for API Gateway Service
 # Stage 1: Build stage
-FROM gradle:8.6-jdk21-alpine AS build
+FROM gradle:8.14.0-jdk21-alpine AS build
 # Set working directory
 WORKDIR /app
 
