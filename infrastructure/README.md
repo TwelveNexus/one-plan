@@ -137,7 +137,6 @@ cd one-plan
 
 # Make scripts executable
 chmod +x infrastructure/ci-cd/scripts/*.sh
-chmod +x infrastructure/docker/docker-healthcheck.sh
 
 # Copy environment configuration
 cp infrastructure/docker/.env.example infrastructure/docker/.env.local

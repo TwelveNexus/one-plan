@@ -19,8 +19,6 @@ RUN gradle clean build -x test --no-daemon
 # Stage 2: Runtime stage
 FROM eclipse-temurin:21-jre-alpine
 
-# Install curl for health checks
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Create application user for security
 RUN addgroup --system appgroup && adduser --system --group appuser
@@ -39,10 +37,6 @@ USER appuser
 
 # Expose the port (Project Service runs on 8084)
 EXPOSE 8084
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:8084/actuator/health || exit 1
 
 # JVM optimizations for containerized environment
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UnlockExperimentalVMOptions -XX:+UseZGC"
