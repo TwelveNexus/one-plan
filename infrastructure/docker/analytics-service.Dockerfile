@@ -1,7 +1,6 @@
 # Multi-stage build for Analytics Service
 # Stage 1: Build stage
 FROM gradle:8.14.0-jdk21-alpine AS build
-
 # Set working directory
 WORKDIR /app
 
@@ -19,20 +18,11 @@ RUN gradle clean build -x test --no-daemon
 # Stage 2: Runtime stage
 FROM eclipse-temurin:21-jre-alpine
 
-# Create application user for security
-RUN addgroup --system appgroup && adduser --system --group appuser
-
 # Set working directory
 WORKDIR /app
 
 # Copy the built JAR from build stage
 COPY --from=build /app/build/libs/*.jar app.jar
-
-# Change ownership to app user
-RUN chown -R appuser:appgroup /app
-
-# Switch to non-root user
-USER appuser
 
 # Expose the port (Analytics Service runs on 8090)
 EXPOSE 8090
