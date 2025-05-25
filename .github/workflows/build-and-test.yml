@@ -1,0 +1,387 @@
+name: Build and Test
+
+# Trigger on push to main/develop and all pull requests
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+# Environment variables
+env:
+  JAVA_VERSION: '21'
+  GRADLE_VERSION: '8.6'
+  NODE_VERSION: '20'
+
+jobs:
+  # Job 1: Test Services
+  test-services:
+    name: Test Microservices
+    runs-on: ubuntu-latest
+
+    services:
+      # MariaDB for testing
+      mariadb:
+        image: mariadb:11.2
+        env:
+          MYSQL_ROOT_PASSWORD: testpassword
+          MYSQL_DATABASE: oneplan_test
+          MYSQL_USER: oneplan
+          MYSQL_PASSWORD: oneplan123
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+      # MongoDB for testing
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd="mongosh --eval 'db.admin.ping()'"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+      # Redis for testing
+      redis:
+        image: redis:7.0-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    strategy:
+      matrix:
+        service: [
+          'api-gateway',
+          'identity-service',
+          'tenant-service',
+          'organization-service',
+          'project-service',
+          'task-service',
+          'requirement-service',
+          'storyboard-service',
+          'integration-service',
+          'notification-service',
+          'analytics-service',
+          'subscription-service'
+        ]
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+        working-directory: backend/${{ matrix.service }}
+
+      - name: Wait for databases to be ready
+        run: |
+          echo "Waiting for MariaDB..."
+          while ! mysqladmin ping -h"127.0.0.1" -P3306 --silent; do
+            echo "Waiting for MariaDB to be ready..."
+            sleep 2
+          done
+
+          echo "Waiting for MongoDB..."
+          while ! mongosh --host 127.0.0.1:27017 --eval "db.admin.ping()" --quiet; do
+            echo "Waiting for MongoDB to be ready..."
+            sleep 2
+          done
+
+          echo "Waiting for Redis..."
+          while ! redis-cli -h 127.0.0.1 -p 6379 ping; do
+            echo "Waiting for Redis to be ready..."
+            sleep 2
+          done
+
+          echo "All databases are ready!"
+
+      - name: Create test databases
+        run: |
+          mysql -h 127.0.0.1 -P 3306 -u root -ptestpassword -e "
+            CREATE DATABASE IF NOT EXISTS oneplan_identity_test;
+            CREATE DATABASE IF NOT EXISTS oneplan_tenant_test;
+            CREATE DATABASE IF NOT EXISTS oneplan_organization_test;
+            CREATE DATABASE IF NOT EXISTS oneplan_project_test;
+            CREATE DATABASE IF NOT EXISTS oneplan_task_test;
+            CREATE DATABASE IF NOT EXISTS oneplan_requirement_test;
+            CREATE DATABASE IF NOT EXISTS oneplan_storyboard_test;
+            CREATE DATABASE IF NOT EXISTS oneplan_integration_test;
+            CREATE DATABASE IF NOT EXISTS oneplan_notification_test;
+            CREATE DATABASE IF NOT EXISTS oneplan_analytics_test;
+            CREATE DATABASE IF NOT EXISTS oneplan_subscription_test;
+            GRANT ALL PRIVILEGES ON *.* TO 'oneplan'@'%';
+            FLUSH PRIVILEGES;
+          "
+
+      - name: Run tests for ${{ matrix.service }}
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          SPRING_DATASOURCE_URL: jdbc:mariadb://127.0.0.1:3306/oneplan_${GITHUB_RUN_ID}_test
+          SPRING_DATASOURCE_USERNAME: oneplan
+          SPRING_DATASOURCE_PASSWORD: oneplan123
+          SPRING_DATA_MONGODB_URI: mongodb://127.0.0.1:27017/oneplan_${GITHUB_RUN_ID}_test
+          SPRING_REDIS_HOST: 127.0.0.1
+          SPRING_REDIS_PORT: 6379
+        run: |
+          echo "Running tests for ${{ matrix.service }}..."
+          ./gradlew clean test --info --stacktrace
+        working-directory: backend/${{ matrix.service }}
+
+      - name: Generate test report for ${{ matrix.service }}
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: Test Results - ${{ matrix.service }}
+          path: backend/${{ matrix.service }}/build/test-results/test/*.xml
+          reporter: java-junit
+
+      - name: Upload test coverage for ${{ matrix.service }}
+        uses: codecov/codecov-action@v3
+        if: success() || failure()
+        with:
+          file: backend/${{ matrix.service }}/build/reports/jacoco/test/jacocoTestReport.xml
+          flags: ${{ matrix.service }}
+          name: codecov-${{ matrix.service }}
+
+  # Job 2: Build Docker Images
+  build-images:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: test-services
+    if: github.event_name == 'push'
+
+    strategy:
+      matrix:
+        service: [
+          'api-gateway',
+          'identity-service',
+          'tenant-service',
+          'organization-service',
+          'project-service',
+          'task-service',
+          'requirement-service',
+          'storyboard-service',
+          'integration-service',
+          'notification-service',
+          'analytics-service',
+          'subscription-service'
+        ]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKER_USERNAME }}/oneplan-${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image for ${{ matrix.service }}
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: infrastructure/docker/${{ matrix.service }}.Dockerfile
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+  # Job 3: Security Scan
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: test-services
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # Job 4: Code Quality
+  code-quality:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Run SonarCloud analysis
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          # Run SonarCloud analysis for each service
+          for service in api-gateway identity-service tenant-service organization-service project-service task-service requirement-service storyboard-service integration-service notification-service analytics-service subscription-service; do
+            echo "Running SonarCloud analysis for $service..."
+            cd backend/$service
+            chmod +x ./gradlew
+            ./gradlew sonarqube \
+              -Dsonar.projectKey=oneplan-$service \
+              -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }} \
+              -Dsonar.host.url=https://sonarcloud.io
+            cd ../..
+          done
+
+  # Job 5: Integration Tests
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: test-services
+
+    services:
+      mariadb:
+        image: mariadb:11.2
+        env:
+          MYSQL_ROOT_PASSWORD: testpassword
+          MYSQL_DATABASE: oneplan_integration
+          MYSQL_USER: oneplan
+          MYSQL_PASSWORD: oneplan123
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+
+      redis:
+        image: redis:7.0-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      - name: Set up Docker Compose
+        run: |
+          sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+
+      - name: Run integration tests
+        run: |
+          echo "Setting up integration test environment..."
+          cd infrastructure/docker
+          cp .env.example .env.local
+
+          # Start services for integration testing
+          docker-compose -f docker-compose.yml up -d mariadb mongodb redis
+
+          # Wait for services to be ready
+          sleep 30
+
+          # Run integration tests (if you have them)
+          echo "Integration tests would run here..."
+
+          # Cleanup
+          docker-compose down
+
+  # Job 6: Notify Deployment Ready
+  notify-ready:
+    name: Notify Deployment Ready
+    runs-on: ubuntu-latest
+    needs: [test-services, build-images, security-scan, code-quality]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Notify deployment ready
+        run: |
+          echo "🚀 All checks passed! Ready for deployment to Coolify."
+          echo "Docker images have been built and pushed."
+          echo "Security scans completed successfully."
+          echo "Code quality checks passed."

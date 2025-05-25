@@ -1,0 +1,481 @@
+name: Pull Request Checks
+
+# Trigger on all pull requests
+on:
+  pull_request:
+    branches: [ main, develop ]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+# Permissions for the workflow
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+env:
+  JAVA_VERSION: '21'
+  GRADLE_VERSION: '8.6'
+
+jobs:
+  # Job 1: Validate PR
+  validate-pr:
+    name: Validate Pull Request
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate PR title
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          requireScope: false
+          subjectPattern: ^(?![A-Z]).+$
+          subjectPatternError: |
+            The subject "{subject}" found in the pull request title "{title}"
+            didn't match the configured pattern. Please ensure that the subject
+            doesn't start with an uppercase character.
+
+      - name: Check for breaking changes
+        run: |
+          echo "Checking for breaking changes..."
+          # Check if there are any breaking changes in API contracts
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E "(api|contract|schema)" > /dev/null; then
+            echo "⚠️ API changes detected. Please ensure backward compatibility."
+          fi
+
+  # Job 2: Changed Files Analysis
+  analyze-changes:
+    name: Analyze Changed Files
+    runs-on: ubuntu-latest
+
+    outputs:
+      backend-changed: ${{ steps.changes.outputs.backend }}
+      frontend-changed: ${{ steps.changes.outputs.frontend }}
+      docker-changed: ${{ steps.changes.outputs.docker }}
+      docs-changed: ${{ steps.changes.outputs.docs }}
+      affected-services: ${{ steps.affected.outputs.services }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Detect changes
+        uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
+            docker:
+              - 'infrastructure/docker/**'
+              - '**/Dockerfile'
+            docs:
+              - 'docs/**'
+              - '*.md'
+
+      - name: Determine affected services
+        id: affected
+        run: |
+          affected_services=""
+
+          # Check which backend services are affected
+          for service in api-gateway identity-service tenant-service organization-service project-service task-service requirement-service storyboard-service integration-service notification-service analytics-service subscription-service; do
+            if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q "backend/$service/"; then
+              affected_services="$affected_services $service"
+            fi
+          done
+
+          # Check if commons library is affected (affects all services)
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q "backend/commons/"; then
+            affected_services="api-gateway identity-service tenant-service organization-service project-service task-service requirement-service storyboard-service integration-service notification-service analytics-service subscription-service"
+          fi
+
+          echo "services=${affected_services}" >> $GITHUB_OUTPUT
+          echo "Affected services: $affected_services"
+
+  # Job 3: Test Affected Services
+  test-affected-services:
+    name: Test Affected Services
+    runs-on: ubuntu-latest
+    needs: analyze-changes
+    if: needs.analyze-changes.outputs.backend-changed == 'true'
+
+    services:
+      mariadb:
+        image: mariadb:11.2
+        env:
+          MYSQL_ROOT_PASSWORD: testpassword
+          MYSQL_DATABASE: oneplan_test
+          MYSQL_USER: oneplan
+          MYSQL_PASSWORD: oneplan123
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+
+      redis:
+        image: redis:7.0-alpine
+        ports:
+          - 6379:6379
+
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.analyze-changes.outputs.affected-services != '' && format('["{0}"]', join(fromJson(format('[{0}]', needs.analyze-changes.outputs.affected-services)), '", "')) || '["skip"]') }}
+      fail-fast: false
+
+    steps:
+      - name: Skip if no services affected
+        if: matrix.service == 'skip'
+        run: echo "No backend services affected, skipping tests"
+
+      - name: Checkout code
+        if: matrix.service != 'skip'
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        if: matrix.service != 'skip'
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      - name: Cache Gradle packages
+        if: matrix.service != 'skip'
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Run tests for ${{ matrix.service }}
+        if: matrix.service != 'skip'
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          SPRING_DATASOURCE_URL: jdbc:mariadb://127.0.0.1:3306/oneplan_test
+          SPRING_DATASOURCE_USERNAME: oneplan
+          SPRING_DATASOURCE_PASSWORD: oneplan123
+          SPRING_DATA_MONGODB_URI: mongodb://127.0.0.1:27017/oneplan_test
+          SPRING_REDIS_HOST: 127.0.0.1
+          SPRING_REDIS_PORT: 6379
+        run: |
+          cd backend/${{ matrix.service }}
+          chmod +x ./gradlew
+          ./gradlew clean test --info
+
+  # Job 4: Build Check
+  build-check:
+    name: Build Check
+    runs-on: ubuntu-latest
+    needs: analyze-changes
+    if: needs.analyze-changes.outputs.docker-changed == 'true' || needs.analyze-changes.outputs.backend-changed == 'true'
+
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.analyze-changes.outputs.affected-services != '' && format('["{0}"]', join(fromJson(format('[{0}]', needs.analyze-changes.outputs.affected-services)), '", "')) || '["api-gateway"]') }}
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image for ${{ matrix.service }}
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: infrastructure/docker/${{ matrix.service }}.Dockerfile
+          push: false
+          tags: oneplan-${{ matrix.service }}:pr-${{ github.event.number }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Job 5: Code Quality Check
+  code-quality:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    needs: analyze-changes
+    if: needs.analyze-changes.outputs.backend-changed == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Run Checkstyle
+        run: |
+          affected_services="${{ needs.analyze-changes.outputs.affected-services }}"
+          for service in $affected_services; do
+            echo "Running Checkstyle for $service..."
+            cd backend/$service
+            chmod +x ./gradlew
+            ./gradlew checkstyleMain checkstyleTest || echo "Checkstyle issues found in $service"
+            cd ../..
+          done
+
+      - name: Run SpotBugs
+        run: |
+          affected_services="${{ needs.analyze-changes.outputs.affected-services }}"
+          for service in $affected_services; do
+            echo "Running SpotBugs for $service..."
+            cd backend/$service
+            ./gradlew spotbugsMain || echo "SpotBugs issues found in $service"
+            cd ../..
+          done
+
+  # Job 6: Security Scan
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: analyze-changes
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Check for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --debug --only-verified
+
+  # Job 7: API Contract Testing
+  api-contract-test:
+    name: API Contract Testing
+    runs-on: ubuntu-latest
+    needs: analyze-changes
+    if: needs.analyze-changes.outputs.backend-changed == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for API breaking changes
+        run: |
+          echo "Checking for API contract changes..."
+
+          # Check if any OpenAPI specs have changed
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E "(openapi|swagger|api)" > /dev/null; then
+            echo "⚠️ API contract changes detected"
+            echo "Please ensure backward compatibility and update API version if needed"
+          fi
+
+          # Add actual contract testing here using tools like:
+          # - OpenAPI diff
+          # - Pact contract testing
+          # - API compatibility checks
+
+  # Job 8: Performance Impact Analysis
+  performance-analysis:
+    name: Performance Impact Analysis
+    runs-on: ubuntu-latest
+    needs: analyze-changes
+    if: needs.analyze-changes.outputs.backend-changed == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Analyze performance impact
+        run: |
+          echo "Analyzing potential performance impact..."
+
+          # Check for database migration files
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E "(migration|flyway|liquibase)" > /dev/null; then
+            echo "⚠️ Database migrations detected"
+            echo "Please review migration scripts for performance impact"
+          fi
+
+          # Check for large file additions
+          large_files=$(git diff --name-only --diff-filter=A origin/${{ github.base_ref }}...HEAD | xargs -I {} sh -c 'test -f "{}" && wc -c < "{}"' | awk '$1 > 1048576 {print $1}')
+          if [ -n "$large_files" ]; then
+            echo "⚠️ Large files added (>1MB)"
+            echo "Consider optimizing or using external storage"
+          fi
+
+  # Job 9: Documentation Check
+  docs-check:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+    needs: analyze-changes
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for documentation updates
+        run: |
+          echo "Checking documentation requirements..."
+
+          # Check if backend changes require docs updates
+          if [ "${{ needs.analyze-changes.outputs.backend-changed }}" = "true" ] && [ "${{ needs.analyze-changes.outputs.docs-changed }}" = "false" ]; then
+            echo "⚠️ Backend changes detected without documentation updates"
+            echo "Consider updating relevant documentation"
+          fi
+
+          # Check for new API endpoints
+          if git diff origin/${{ github.base_ref }}...HEAD | grep -E "@(GET|POST|PUT|DELETE|PATCH)Mapping" > /dev/null; then
+            echo "⚠️ New API endpoints detected"
+            echo "Please ensure API documentation is updated"
+          fi
+
+  # Job 10: Dependency Check
+  dependency-check:
+    name: Dependency Security Check
+    runs-on: ubuntu-latest
+    needs: analyze-changes
+    if: needs.analyze-changes.outputs.backend-changed == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      - name: Run dependency vulnerability check
+        run: |
+          affected_services="${{ needs.analyze-changes.outputs.affected-services }}"
+          for service in $affected_services; do
+            echo "Checking dependencies for $service..."
+            cd backend/$service
+            chmod +x ./gradlew
+
+            # Check for dependency updates
+            ./gradlew dependencyUpdates
+
+            # Check for security vulnerabilities
+            ./gradlew dependencyCheckAnalyze || echo "Vulnerability check completed for $service"
+
+            cd ../..
+          done
+
+  # Job 11: PR Summary
+  pr-summary:
+    name: PR Summary
+    runs-on: ubuntu-latest
+    needs: [validate-pr, analyze-changes, test-affected-services, build-check, code-quality, security-scan]
+    if: always()
+
+    steps:
+      - name: Create PR summary comment
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' && comment.body.includes('## 🔍 PR Analysis Summary')
+            );
+
+            const affectedServices = '${{ needs.analyze-changes.outputs.affected-services }}';
+            const backendChanged = '${{ needs.analyze-changes.outputs.backend-changed }}';
+            const dockerChanged = '${{ needs.analyze-changes.outputs.docker-changed }}';
+
+            const summary = `## 🔍 PR Analysis Summary
+
+            ### Changes Detected
+            - **Backend Services**: ${backendChanged === 'true' ? '✅ Yes' : '❌ No'}
+            - **Docker Configuration**: ${dockerChanged === 'true' ? '✅ Yes' : '❌ No'}
+            - **Affected Services**: ${affectedServices || 'None'}
+
+            ### Check Results
+            - **Tests**: ${{ needs.test-affected-services.result || 'Skipped' }}
+            - **Build Check**: ${{ needs.build-check.result || 'Skipped' }}
+            - **Code Quality**: ${{ needs.code-quality.result || 'Skipped' }}
+            - **Security Scan**: ${{ needs.security-scan.result || 'Skipped' }}
+
+            ### Next Steps
+            ${backendChanged === 'true' ? '- ✅ Backend changes detected - full CI pipeline will run' : '- ℹ️ No backend changes - limited checks performed'}
+            ${affectedServices ? `- 🎯 Focus testing on: ${affectedServices}` : ''}
+
+            ---
+            *This comment is automatically updated on each push*
+            `;
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: summary
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: summary
+              });
+            }

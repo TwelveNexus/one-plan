@@ -1,0 +1,285 @@
+version: '3.8'
+
+# Main Docker Compose file for One Plan local development
+# Usage: docker-compose up
+# This file includes all services and databases for complete local development
+
+services:
+  # API Gateway - Entry point (Port: 8080)
+  api-gateway:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/api-gateway.Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+    depends_on:
+      - identity-service
+      - tenant-service
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+
+  # Identity Service - Authentication (Port: 8081)
+  identity-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/identity-service.Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb:3306/oneplan_identity
+      - SPRING_DATASOURCE_USERNAME=oneplan
+      - SPRING_DATASOURCE_PASSWORD=oneplan123
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+    depends_on:
+      - mariadb
+      - redis
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+
+  # Tenant Service - Multi-tenant (Port: 8082)
+  tenant-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/tenant-service.Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb:3306/oneplan_tenant
+      - SPRING_DATASOURCE_USERNAME=oneplan
+      - SPRING_DATASOURCE_PASSWORD=oneplan123
+    depends_on:
+      - mariadb
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+
+  # Organization Service - Teams (Port: 8083)
+  organization-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/organization-service.Dockerfile
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb:3306/oneplan_organization
+      - SPRING_DATASOURCE_USERNAME=oneplan
+      - SPRING_DATASOURCE_PASSWORD=oneplan123
+    depends_on:
+      - mariadb
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+
+  # Project Service - Projects (Port: 8084)
+  project-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/project-service.Dockerfile
+    ports:
+      - "8084:8084"
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb:3306/oneplan_project
+      - SPRING_DATASOURCE_USERNAME=oneplan
+      - SPRING_DATASOURCE_PASSWORD=oneplan123
+    depends_on:
+      - mariadb
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+
+  # Task Service - Tasks & Comments (Port: 8085)
+  task-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/task-service.Dockerfile
+    ports:
+      - "8085:8085"
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb:3306/oneplan_task
+      - SPRING_DATASOURCE_USERNAME=oneplan
+      - SPRING_DATASOURCE_PASSWORD=oneplan123
+    depends_on:
+      - mariadb
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+
+  # Requirement Service - AI Requirements (Port: 8086)
+  requirement-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/requirement-service.Dockerfile
+    ports:
+      - "8086:8086"
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb:3306/oneplan_requirement
+      - SPRING_DATASOURCE_USERNAME=oneplan
+      - SPRING_DATASOURCE_PASSWORD=oneplan123
+    depends_on:
+      - mariadb
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+
+  # Storyboard Service - Visual Planning (Port: 8087)
+  storyboard-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/storyboard-service.Dockerfile
+    ports:
+      - "8087:8087"
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb:3306/oneplan_storyboard
+      - SPRING_DATASOURCE_USERNAME=oneplan
+      - SPRING_DATASOURCE_PASSWORD=oneplan123
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/oneplan_storyboard
+    depends_on:
+      - mariadb
+      - mongodb
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+
+  # Integration Service - Git & APIs (Port: 8088)
+  integration-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/integration-service.Dockerfile
+    ports:
+      - "8088:8088"
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb:3306/oneplan_integration
+      - SPRING_DATASOURCE_USERNAME=oneplan
+      - SPRING_DATASOURCE_PASSWORD=oneplan123
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/oneplan_integration
+    depends_on:
+      - mariadb
+      - mongodb
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+
+  # Notification Service - Notifications (Port: 8089)
+  notification-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/notification-service.Dockerfile
+    ports:
+      - "8089:8089"
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb:3306/oneplan_notification
+      - SPRING_DATASOURCE_USERNAME=oneplan
+      - SPRING_DATASOURCE_PASSWORD=oneplan123
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+    depends_on:
+      - mariadb
+      - redis
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+
+  # Analytics Service - Reports (Port: 8090)
+  analytics-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/analytics-service.Dockerfile
+    ports:
+      - "8090:8090"
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb:3306/oneplan_analytics
+      - SPRING_DATASOURCE_USERNAME=oneplan
+      - SPRING_DATASOURCE_PASSWORD=oneplan123
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/oneplan_analytics
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+    depends_on:
+      - mariadb
+      - mongodb
+      - redis
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+
+  # Subscription Service - Billing (Port: 8091)
+  subscription-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/subscription-service.Dockerfile
+    ports:
+      - "8091:8091"
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb:3306/oneplan_subscription
+      - SPRING_DATASOURCE_USERNAME=oneplan
+      - SPRING_DATASOURCE_PASSWORD=oneplan123
+    depends_on:
+      - mariadb
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+
+  # Database Services
+  mariadb:
+    image: mariadb:11.2
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_USER=oneplan
+      - MYSQL_PASSWORD=oneplan123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:6.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.0-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+
+# Networks
+networks:
+  oneplan-network:
+    driver: bridge
+
+# Volumes for data persistence
+volumes:
+  mariadb_data:
+    driver: local
+  mongodb_data:
+    driver: local
+  redis_data:
+    driver: local

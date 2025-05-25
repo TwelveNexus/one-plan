@@ -1,0 +1,292 @@
+version: '3.8'
+
+services:
+  # API Gateway - Entry point for all services
+  api-gateway:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/api-gateway.Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=production
+      - SERVER_PORT=8080
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Identity Service - Authentication & User Management
+  identity-service:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/identity-service.Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=production
+      - SERVER_PORT=8081
+      - SPRING_DATASOURCE_URL=${MARIADB_URL_IDENTITY}
+      - SPRING_DATASOURCE_USERNAME=${MARIADB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${MARIADB_PASSWORD}
+      - SPRING_REDIS_HOST=${REDIS_HOST}
+      - SPRING_REDIS_PORT=${REDIS_PORT}
+      - SPRING_REDIS_PASSWORD=${REDIS_PASSWORD}
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Tenant Service - Multi-tenant Management
+  tenant-service:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/tenant-service.Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=production
+      - SERVER_PORT=8082
+      - SPRING_DATASOURCE_URL=${MARIADB_URL_TENANT}
+      - SPRING_DATASOURCE_USERNAME=${MARIADB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${MARIADB_PASSWORD}
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Organization Service - Organizations & Teams
+  organization-service:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/organization-service.Dockerfile
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=production
+      - SERVER_PORT=8083
+      - SPRING_DATASOURCE_URL=${MARIADB_URL_ORGANIZATION}
+      - SPRING_DATASOURCE_USERNAME=${MARIADB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${MARIADB_PASSWORD}
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Project Service - Project Management
+  project-service:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/project-service.Dockerfile
+    ports:
+      - "8084:8084"
+    environment:
+      - SPRING_PROFILES_ACTIVE=production
+      - SERVER_PORT=8084
+      - SPRING_DATASOURCE_URL=${MARIADB_URL_PROJECT}
+      - SPRING_DATASOURCE_USERNAME=${MARIADB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${MARIADB_PASSWORD}
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Task Service - Task Management & Comments
+  task-service:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/task-service.Dockerfile
+    ports:
+      - "8085:8085"
+    environment:
+      - SPRING_PROFILES_ACTIVE=production
+      - SERVER_PORT=8085
+      - SPRING_DATASOURCE_URL=${MARIADB_URL_TASK}
+      - SPRING_DATASOURCE_USERNAME=${MARIADB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${MARIADB_PASSWORD}
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Requirement Service - AI-powered Requirements
+  requirement-service:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/requirement-service.Dockerfile
+    ports:
+      - "8086:8086"
+    environment:
+      - SPRING_PROFILES_ACTIVE=production
+      - SERVER_PORT=8086
+      - SPRING_DATASOURCE_URL=${MARIADB_URL_REQUIREMENT}
+      - SPRING_DATASOURCE_USERNAME=${MARIADB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${MARIADB_PASSWORD}
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Storyboard Service - Visual Planning
+  storyboard-service:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/storyboard-service.Dockerfile
+    ports:
+      - "8087:8087"
+    environment:
+      - SPRING_PROFILES_ACTIVE=production
+      - SERVER_PORT=8087
+      - SPRING_DATASOURCE_URL=${MARIADB_URL_STORYBOARD}
+      - SPRING_DATASOURCE_USERNAME=${MARIADB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${MARIADB_PASSWORD}
+      - SPRING_DATA_MONGODB_URI=${MONGODB_URL_STORYBOARD}
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8087/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Integration Service - Git & External APIs
+  integration-service:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/integration-service.Dockerfile
+    ports:
+      - "8088:8088"
+    environment:
+      - SPRING_PROFILES_ACTIVE=production
+      - SERVER_PORT=8088
+      - SPRING_DATASOURCE_URL=${MARIADB_URL_INTEGRATION}
+      - SPRING_DATASOURCE_USERNAME=${MARIADB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${MARIADB_PASSWORD}
+      - SPRING_DATA_MONGODB_URI=${MONGODB_URL_INTEGRATION}
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8088/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Notification Service - Multi-channel Notifications
+  notification-service:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/notification-service.Dockerfile
+    ports:
+      - "8089:8089"
+    environment:
+      - SPRING_PROFILES_ACTIVE=production
+      - SERVER_PORT=8089
+      - SPRING_DATASOURCE_URL=${MARIADB_URL_NOTIFICATION}
+      - SPRING_DATASOURCE_USERNAME=${MARIADB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${MARIADB_PASSWORD}
+      - SPRING_REDIS_HOST=${REDIS_HOST}
+      - SPRING_REDIS_PORT=${REDIS_PORT}
+      - SPRING_REDIS_PASSWORD=${REDIS_PASSWORD}
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8089/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Analytics Service - Metrics & Reports
+  analytics-service:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/analytics-service.Dockerfile
+    ports:
+      - "8090:8090"
+    environment:
+      - SPRING_PROFILES_ACTIVE=production
+      - SERVER_PORT=8090
+      - SPRING_DATASOURCE_URL=${MARIADB_URL_ANALYTICS}
+      - SPRING_DATASOURCE_USERNAME=${MARIADB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${MARIADB_PASSWORD}
+      - SPRING_DATA_MONGODB_URI=${MONGODB_URL_ANALYTICS}
+      - SPRING_REDIS_HOST=${REDIS_HOST}
+      - SPRING_REDIS_PORT=${REDIS_PORT}
+      - SPRING_REDIS_PASSWORD=${REDIS_PASSWORD}
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Subscription Service - Billing & Payments
+  subscription-service:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/subscription-service.Dockerfile
+    ports:
+      - "8091:8091"
+    environment:
+      - SPRING_PROFILES_ACTIVE=production
+      - SERVER_PORT=8091
+      - SPRING_DATASOURCE_URL=${MARIADB_URL_SUBSCRIPTION}
+      - SPRING_DATASOURCE_USERNAME=${MARIADB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${MARIADB_PASSWORD}
+    networks:
+      - oneplan-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8091/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+# Networks
+networks:
+  oneplan-network:
+    driver: bridge
