@@ -4,7 +4,7 @@ import lombok.Data;
 
 @Data
 public class CreateDashboardDto {
-    private String name;
-    private String description;
-    private boolean isPublic;
+  private String name;
+  private String description;
+  private boolean isPublic;
 }

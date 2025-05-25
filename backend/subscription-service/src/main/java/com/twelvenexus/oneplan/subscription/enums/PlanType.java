@@ -1,8 +1,8 @@
 package com.twelvenexus.oneplan.subscription.enums;
 
 public enum PlanType {
-    STARTER,
-    PROFESSIONAL,
-    ENTERPRISE,
-    CUSTOM
+  STARTER,
+  PROFESSIONAL,
+  ENTERPRISE,
+  CUSTOM
 }

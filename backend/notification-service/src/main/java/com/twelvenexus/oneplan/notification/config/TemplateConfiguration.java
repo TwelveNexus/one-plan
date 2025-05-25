@@ -9,13 +9,13 @@ import org.thymeleaf.templateresolver.StringTemplateResolver;
 
 @Configuration
 public class TemplateConfiguration {
-    
-    @Bean
-    public TemplateEngine emailTemplateEngine() {
-        SpringTemplateEngine templateEngine = new SpringTemplateEngine();
-        StringTemplateResolver templateResolver = new StringTemplateResolver();
-        templateResolver.setTemplateMode(TemplateMode.HTML);
-        templateEngine.setTemplateResolver(templateResolver);
-        return templateEngine;
-    }
+
+  @Bean
+  public TemplateEngine emailTemplateEngine() {
+    SpringTemplateEngine templateEngine = new SpringTemplateEngine();
+    StringTemplateResolver templateResolver = new StringTemplateResolver();
+    templateResolver.setTemplateMode(TemplateMode.HTML);
+    templateEngine.setTemplateResolver(templateResolver);
+    return templateEngine;
+  }
 }

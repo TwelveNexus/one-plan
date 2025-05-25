@@ -14,23 +14,28 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfiguration {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+  private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/api/v1/webhooks/**").permitAll()
-                .requestMatchers("/api/v1/plans/**").permitAll()
-                .requestMatchers("/api/docs/**", "/swagger-ui/**", "/api-docs/**").permitAll()
-                .requestMatchers("/actuator/health", "/actuator/metrics").permitAll()
-                .anyRequest().authenticated()
-            )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+  @Bean
+  public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    http.csrf(csrf -> csrf.disable())
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(
+            authz ->
+                authz
+                    .requestMatchers("/api/v1/webhooks/**")
+                    .permitAll()
+                    .requestMatchers("/api/v1/plans/**")
+                    .permitAll()
+                    .requestMatchers("/api/docs/**", "/swagger-ui/**", "/api-docs/**")
+                    .permitAll()
+                    .requestMatchers("/actuator/health", "/actuator/metrics")
+                    .permitAll()
+                    .anyRequest()
+                    .authenticated())
+        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
-    }
+    return http.build();
+  }
 }
