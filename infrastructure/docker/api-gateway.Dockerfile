@@ -1,6 +1,6 @@
 # Multi-stage build for API Gateway Service
 # Stage 1: Build stage
-FROM gradle:8.14.0-jdk21-corretto AS build
+FROM gradle:8.6-jdk21-alpine AS build
 
 # Set working directory
 WORKDIR /app
@@ -17,7 +17,7 @@ COPY backend/api-gateway/src ./src
 RUN gradle clean build -x test --no-daemon
 
 # Stage 2: Runtime stage
-FROM openjdk:21-jre-slim
+FROM eclipse-temurin:21-jre-alpine
 
 # Install curl for health checks
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
