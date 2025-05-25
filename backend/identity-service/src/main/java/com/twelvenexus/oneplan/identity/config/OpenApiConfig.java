@@ -11,25 +11,25 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class OpenApiConfig {
-    @Bean
-    public OpenAPI customOpenAPI() {
-        return new OpenAPI()
-                .info(new Info()
-                        .title("One Plan Identity Service API")
-                        .version("1.0.0")
-                        .description("Identity Service for One Plan platform")
-                        .contact(new Contact()
-                                .name("Apavayan Sinha")
-                                .email("info@apavayan.com"))
-                        .license(new License()
-                                .name("Private")))
-                .components(new Components()
-                        .addSecuritySchemes("bearer-jwt",
-                                new SecurityScheme()
-                                        .type(SecurityScheme.Type.HTTP)
-                                        .scheme("bearer")
-                                        .bearerFormat("JWT")
-                                        .in(SecurityScheme.In.HEADER)
-                                        .name("Authorization")));
-    }
+  @Bean
+  public OpenAPI customOpenAPI() {
+    return new OpenAPI()
+        .info(
+            new Info()
+                .title("One Plan Identity Service API")
+                .version("1.0.0")
+                .description("Identity Service for One Plan platform")
+                .contact(new Contact().name("Apavayan Sinha").email("info@apavayan.com"))
+                .license(new License().name("Private")))
+        .components(
+            new Components()
+                .addSecuritySchemes(
+                    "bearer-jwt",
+                    new SecurityScheme()
+                        .type(SecurityScheme.Type.HTTP)
+                        .scheme("bearer")
+                        .bearerFormat("JWT")
+                        .in(SecurityScheme.In.HEADER)
+                        .name("Authorization")));
+  }
 }

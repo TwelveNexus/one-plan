@@ -4,79 +4,80 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "users", 
-       uniqueConstraints = {
-           @UniqueConstraint(columnNames = "email")
-       })
+@Table(
+    name = "users",
+    uniqueConstraints = {@UniqueConstraint(columnNames = "email")})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", columnDefinition = "BINARY(16)")
-    private UUID id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  @Column(name = "id", columnDefinition = "BINARY(16)")
+  private UUID id;
 
-    @NotBlank
-    @Size(max = 50)
-    private String firstName;
+  @NotBlank
+  @Size(max = 50)
+  private String firstName;
 
-    @NotBlank
-    @Size(max = 50)
-    private String lastName;
+  @NotBlank
+  @Size(max = 50)
+  private String lastName;
 
-    @NotBlank
-    @Size(max = 50)
-    @Email
-    private String email;
+  @NotBlank
+  @Size(max = 50)
+  @Email
+  private String email;
 
-    @NotBlank
-    @Size(max = 120)
-    private String passwordHash;
+  @NotBlank
+  @Size(max = 120)
+  private String passwordHash;
 
-    @Size(max = 255)
-    private String avatar;
+  @Size(max = 255)
+  private String avatar;
 
-    @Enumerated(EnumType.STRING)
-    private UserStatus status = UserStatus.PENDING;
+  @Enumerated(EnumType.STRING)
+  private UserStatus status = UserStatus.PENDING;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "user_roles", 
-                    joinColumns = @JoinColumn(name = "user_id", columnDefinition = "BINARY(16)"))
-    @Column(name = "role")
-    private Set<String> roles = new HashSet<>();
+  @ElementCollection(fetch = FetchType.EAGER)
+  @CollectionTable(
+      name = "user_roles",
+      joinColumns = @JoinColumn(name = "user_id", columnDefinition = "BINARY(16)"))
+  @Column(name = "role")
+  private Set<String> roles = new HashSet<>();
 
-    @Column(name = "last_login")
-    private LocalDateTime lastLogin;
+  @Column(name = "last_login")
+  private LocalDateTime lastLogin;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+  @Column(name = "created_at", nullable = false, updatable = false)
+  private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+  @Column(name = "updated_at")
+  private LocalDateTime updatedAt;
 
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
+  @PrePersist
+  protected void onCreate() {
+    createdAt = LocalDateTime.now();
+    updatedAt = LocalDateTime.now();
+  }
 
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
+  @PreUpdate
+  protected void onUpdate() {
+    updatedAt = LocalDateTime.now();
+  }
 
-    public enum UserStatus {
-        ACTIVE, INACTIVE, PENDING
-    }
+  public enum UserStatus {
+    ACTIVE,
+    INACTIVE,
+    PENDING
+  }
 }

@@ -18,20 +18,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthService authService;
+  private final AuthService authService;
 
-    @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
-        return ResponseEntity.ok(authService.login(loginRequest));
-    }
+  @PostMapping("/login")
+  public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
+    return ResponseEntity.ok(authService.login(loginRequest));
+  }
 
-    @PostMapping("/signup")
-    public ResponseEntity<AuthResponse> signup(@Valid @RequestBody SignupRequest signupRequest) {
-        return ResponseEntity.ok(authService.signup(signupRequest));
-    }
+  @PostMapping("/signup")
+  public ResponseEntity<AuthResponse> signup(@Valid @RequestBody SignupRequest signupRequest) {
+    return ResponseEntity.ok(authService.signup(signupRequest));
+  }
 
-    @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest refreshTokenRequest) {
-        return ResponseEntity.ok(authService.refreshToken(refreshTokenRequest.getRefreshToken()));
-    }
+  @PostMapping("/refresh")
+  public ResponseEntity<AuthResponse> refreshToken(
+      @Valid @RequestBody RefreshTokenRequest refreshTokenRequest) {
+    return ResponseEntity.ok(authService.refreshToken(refreshTokenRequest.getRefreshToken()));
+  }
 }

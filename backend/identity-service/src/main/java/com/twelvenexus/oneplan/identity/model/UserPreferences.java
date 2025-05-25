@@ -1,11 +1,10 @@
 package com.twelvenexus.oneplan.identity.model;
 
 import jakarta.persistence.*;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.UUID;
 
 @Entity
 @Table(name = "user_preferences")
@@ -13,19 +12,19 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserPreferences {
-    @Id
-    @Column(name = "user_id", columnDefinition = "BINARY(16)")
-    private UUID userId;
+  @Id
+  @Column(name = "user_id", columnDefinition = "BINARY(16)")
+  private UUID userId;
 
-    @OneToOne
-    @MapsId
-    @JoinColumn(name = "user_id", columnDefinition = "BINARY(16)")
-    private User user;
+  @OneToOne
+  @MapsId
+  @JoinColumn(name = "user_id", columnDefinition = "BINARY(16)")
+  private User user;
 
-    private String theme = "light";
-    
-    private String language = "en";
-    
-    @Column(columnDefinition = "TEXT")
-    private String notificationSettings = "{}"; // JSON string for notification settings
+  private String theme = "light";
+
+  private String language = "en";
+
+  @Column(columnDefinition = "TEXT")
+  private String notificationSettings = "{}"; // JSON string for notification settings
 }

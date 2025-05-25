@@ -10,11 +10,11 @@ import org.mapstruct.factory.Mappers;
 @Mapper(componentModel = "spring")
 public interface UserMapper {
 
-    UserMapper INSTANCE = Mappers.getMapper(UserMapper.class);
+  UserMapper INSTANCE = Mappers.getMapper(UserMapper.class);
 
-    @Mapping(target = "status", expression = "java(user.getStatus().name())")
-    UserDto userToUserDto(User user);
+  @Mapping(target = "status", expression = "java(user.getStatus().name())")
+  UserDto userToUserDto(User user);
 
-    @Mapping(target = "passwordHash", ignore = true)
-    void updateUserFromDto(UserDto userDto, @MappingTarget User user);
+  @Mapping(target = "passwordHash", ignore = true)
+  void updateUserFromDto(UserDto userDto, @MappingTarget User user);
 }

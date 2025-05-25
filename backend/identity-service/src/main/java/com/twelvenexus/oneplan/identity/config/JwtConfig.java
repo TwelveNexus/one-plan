@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "app.jwt")
 @Data
 public class JwtConfig {
-    private String secret = "PLACEHOLDER_SECRET_KEY";
-    private long tokenValidityInSeconds = 86400; // 24 hours
-    private long refreshTokenValidityInSeconds = 604800; // 7 days
+  private String secret = "PLACEHOLDER_SECRET_KEY";
+  private long tokenValidityInSeconds = 86400; // 24 hours
+  private long refreshTokenValidityInSeconds = 604800; // 7 days
 }
