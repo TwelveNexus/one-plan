@@ -79,6 +79,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
@@ -96,49 +99,98 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      - name: Verify service directory exists
+        run: |
+          echo "🔍 Checking if service directory exists..."
+          if [ -d "backend/${{ matrix.service }}" ]; then
+            echo "✅ Service directory found: backend/${{ matrix.service }}"
+            ls -la backend/${{ matrix.service }}/
+          else
+            echo "❌ Service directory not found: backend/${{ matrix.service }}"
+            echo "Available directories in backend/:"
+            ls -la backend/ || echo "Backend directory doesn't exist"
+            exit 1
+          fi
+
       - name: Make Gradle wrapper executable
-        run: chmod +x ./gradlew
+        run: |
+          if [ -f "./gradlew" ]; then
+            chmod +x ./gradlew
+            echo "✅ Made gradlew executable"
+          else
+            echo "❌ gradlew not found in backend/${{ matrix.service }}"
+            ls -la
+            exit 1
+          fi
         working-directory: backend/${{ matrix.service }}
 
       - name: Wait for databases to be ready
         run: |
-          echo "Waiting for MariaDB..."
+          echo "⏳ Waiting for databases to be ready..."
+
+          # Wait for MariaDB
+          echo "Checking MariaDB..."
+          timeout=60
           while ! mysqladmin ping -h"127.0.0.1" -P3306 --silent; do
             echo "Waiting for MariaDB to be ready..."
             sleep 2
+            timeout=$((timeout-2))
+            if [ $timeout -le 0 ]; then
+              echo "❌ MariaDB timeout"
+              exit 1
+            fi
           done
+          echo "✅ MariaDB is ready"
 
-          echo "Waiting for MongoDB..."
+          # Wait for MongoDB
+          echo "Checking MongoDB..."
+          timeout=60
           while ! mongosh --host 127.0.0.1:27017 --eval "db.admin.ping()" --quiet; do
             echo "Waiting for MongoDB to be ready..."
             sleep 2
+            timeout=$((timeout-2))
+            if [ $timeout -le 0 ]; then
+              echo "❌ MongoDB timeout"
+              exit 1
+            fi
           done
+          echo "✅ MongoDB is ready"
 
-          echo "Waiting for Redis..."
+          # Wait for Redis
+          echo "Checking Redis..."
+          timeout=60
           while ! redis-cli -h 127.0.0.1 -p 6379 ping; do
             echo "Waiting for Redis to be ready..."
             sleep 2
+            timeout=$((timeout-2))
+            if [ $timeout -le 0 ]; then
+              echo "❌ Redis timeout"
+              exit 1
+            fi
           done
+          echo "✅ Redis is ready"
 
-          echo "All databases are ready!"
+          echo "🎉 All databases are ready!"
 
-      - name: Create test databases (aligned with docker-compose services)
+      - name: Create test databases
         run: |
+          echo "🗄️ Creating test databases..."
           mysql -h 127.0.0.1 -P 3306 -u root -prootpassword -e "
-            CREATE DATABASE IF NOT EXISTS oneplan_identity;
-            CREATE DATABASE IF NOT EXISTS oneplan_tenant;
-            CREATE DATABASE IF NOT EXISTS oneplan_organization;
-            CREATE DATABASE IF NOT EXISTS oneplan_project;
-            CREATE DATABASE IF NOT EXISTS oneplan_task;
-            CREATE DATABASE IF NOT EXISTS oneplan_requirement;
-            CREATE DATABASE IF NOT EXISTS oneplan_storyboard;
-            CREATE DATABASE IF NOT EXISTS oneplan_integration;
-            CREATE DATABASE IF NOT EXISTS oneplan_notification;
-            CREATE DATABASE IF NOT EXISTS oneplan_analytics;
-            CREATE DATABASE IF NOT EXISTS oneplan_subscription;
+            CREATE DATABASE IF NOT EXISTS oneplan_identity_test;
+            CREATE DATABASE IF NOT EXISTS oneplan_tenant_test;
+            CREATE DATABASE IF NOT EXISTS oneplan_organization_test;
+            CREATE DATABASE IF NOT EXISTS oneplan_project_test;
+            CREATE DATABASE IF NOT EXISTS oneplan_task_test;
+            CREATE DATABASE IF NOT EXISTS oneplan_requirement_test;
+            CREATE DATABASE IF NOT EXISTS oneplan_storyboard_test;
+            CREATE DATABASE IF NOT EXISTS oneplan_integration_test;
+            CREATE DATABASE IF NOT EXISTS oneplan_notification_test;
+            CREATE DATABASE IF NOT EXISTS oneplan_analytics_test;
+            CREATE DATABASE IF NOT EXISTS oneplan_subscription_test;
             GRANT ALL PRIVILEGES ON *.* TO 'oneplan'@'%';
             FLUSH PRIVILEGES;
           "
+          echo "✅ Test databases created successfully"
 
       - name: Run tests for ${{ matrix.service }}
         env:
@@ -151,8 +203,9 @@ jobs:
           SPRING_REDIS_PORT: 6379
           JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
         run: |
-          echo "Running tests for ${{ matrix.service }}..."
-          ./gradlew clean test --info --stacktrace
+          echo "🧪 Running tests for ${{ matrix.service }}..."
+          ./gradlew clean test jacocoTestReport --info --stacktrace --no-daemon
+          echo "✅ Tests completed for ${{ matrix.service }}"
         working-directory: backend/${{ matrix.service }}
 
       - name: Generate test report for ${{ matrix.service }}
@@ -162,14 +215,34 @@ jobs:
           name: Test Results - ${{ matrix.service }}
           path: backend/${{ matrix.service }}/build/test-results/test/*.xml
           reporter: java-junit
+          fail-on-error: false
 
-      - name: Upload test coverage for ${{ matrix.service }}
-        uses: codecov/codecov-action@v4
+      - name: Process test coverage for ${{ matrix.service }}
         if: success() || failure()
+        run: |
+          echo "📊 Processing coverage for ${{ matrix.service }}..."
+
+          if [ -f "backend/${{ matrix.service }}/build/reports/jacoco/test/jacocoTestReport.xml" ]; then
+            echo "✅ Coverage report found for ${{ matrix.service }}"
+            echo "## 📊 Coverage Report - ${{ matrix.service }}" >> $GITHUB_STEP_SUMMARY
+            echo "- Status: ✅ Generated successfully" >> $GITHUB_STEP_SUMMARY
+            echo "- Location: \`backend/${{ matrix.service }}/build/reports/jacoco/test/jacocoTestReport.xml\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ No coverage report for ${{ matrix.service }}"
+            echo "## ⚠️ Coverage Report - ${{ matrix.service }}" >> $GITHUB_STEP_SUMMARY
+            echo "- Status: ❌ Not generated" >> $GITHUB_STEP_SUMMARY
+            echo "- Note: Add Jacoco plugin to build.gradle for coverage" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Archive test results for ${{ matrix.service }}
+        uses: actions/upload-artifact@v4
+        if: always()
         with:
-          file: backend/${{ matrix.service }}/build/reports/jacoco/test/jacocoTestReport.xml
-          flags: ${{ matrix.service }}
-          name: codecov-${{ matrix.service }}
+          name: test-artifacts-${{ matrix.service }}
+          path: |
+            backend/${{ matrix.service }}/build/reports/
+            backend/${{ matrix.service }}/build/test-results/
+          retention-days: 7
 
   # Job 2: Build Docker Images
   build-images:
@@ -198,6 +271,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -219,6 +295,18 @@ jobs:
             type=ref,event=pr
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Verify Dockerfile exists
+        run: |
+          dockerfile_path="infrastructure/docker/${{ matrix.service }}.Dockerfile"
+          if [ -f "$dockerfile_path" ]; then
+            echo "✅ Dockerfile found: $dockerfile_path"
+          else
+            echo "❌ Dockerfile not found: $dockerfile_path"
+            echo "Available Dockerfiles:"
+            ls -la infrastructure/docker/*.Dockerfile || echo "No Dockerfiles found"
+            exit 1
+          fi
 
       - name: Build and push Docker image for ${{ matrix.service }}
         uses: docker/build-push-action@v5
@@ -244,6 +332,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
@@ -269,19 +360,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DISTRIBUTION }}
-
-      - name: Cache SonarCloud packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
 
       - name: Cache Gradle packages
         uses: actions/cache@v4
@@ -348,6 +433,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
@@ -355,18 +443,15 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DISTRIBUTION }}
 
-      - name: Set up Docker Compose
-        run: |
-          # Docker Compose is pre-installed on GitHub Actions runners
-          docker-compose --version
-
       - name: Create integration test databases
         run: |
+          echo "🗄️ Creating integration test databases..."
           mysql -h 127.0.0.1 -P 3306 -u root -prootpassword -e "
             CREATE DATABASE IF NOT EXISTS oneplan_integration_test;
             GRANT ALL PRIVILEGES ON *.* TO 'oneplan'@'%';
             FLUSH PRIVILEGES;
           "
+          echo "✅ Integration test databases created"
 
       - name: Run integration tests
         env:
@@ -379,23 +464,37 @@ jobs:
           SPRING_REDIS_PORT: 6379
           JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
         run: |
-          echo "Setting up integration test environment..."
+          echo "🔧 Setting up integration test environment..."
 
-          # Wait for all services to be ready
-          echo "Waiting for services to be ready..."
+          # Wait for databases to be ready
+          echo "⏳ Waiting for services to be ready..."
           sleep 30
 
           # Run integration tests for services that have them
-          echo "Running integration tests..."
-          for service in api-gateway identity-service; do
-            if [ -d "backend/$service/src/test/java/integration" ]; then
-              echo "Running integration tests for $service..."
-              cd backend/$service
-              chmod +x ./gradlew
-              ./gradlew integrationTest --info || echo "Integration tests not configured for $service"
-              cd ../..
+          echo "🧪 Running integration tests..."
+          integration_tests_ran=false
+
+          for service in api-gateway identity-service tenant-service; do
+            if [ -d "backend/$service" ]; then
+              echo "Checking for integration tests in $service..."
+              if [ -d "backend/$service/src/test/java" ] || [ -d "backend/$service/src/integrationTest" ]; then
+                echo "🧪 Running integration tests for $service..."
+                cd backend/$service
+                if [ -f "./gradlew" ]; then
+                  chmod +x ./gradlew
+                  ./gradlew integrationTest --info --no-daemon || echo "⚠️ Integration tests not configured for $service"
+                  integration_tests_ran=true
+                fi
+                cd ../..
+              else
+                echo "ℹ️ No integration tests found for $service"
+              fi
             fi
           done
+
+          if [ "$integration_tests_ran" = false ]; then
+            echo "ℹ️ No integration tests configured yet - this is normal for new projects"
+          fi
 
   # Job 6: Notify Deployment Ready
   notify-ready:
@@ -452,3 +551,9 @@ jobs:
           echo "- MariaDB 11.2 (Port: 3306)" >> $GITHUB_STEP_SUMMARY
           echo "- MongoDB 6.0 (Port: 27017)" >> $GITHUB_STEP_SUMMARY
           echo "- Redis 7.0 (Port: 6379)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎯 Next Steps:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Deploy to Coolify using the built Docker images" >> $GITHUB_STEP_SUMMARY
+          echo "2. Configure environment variables for production" >> $GITHUB_STEP_SUMMARY
+          echo "3. Set up database connections" >> $GITHUB_STEP_SUMMARY
+          echo "4. Configure load balancer and SSL certificates" >> $GITHUB_STEP_SUMMARY
